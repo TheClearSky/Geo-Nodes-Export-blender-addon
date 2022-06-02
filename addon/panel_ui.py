@@ -1,15 +1,15 @@
 import bpy
 #for debugging, disable in build
-fixgeoandmat = bpy.data.texts["Exporttogltfcustom.py"].as_module() 
+# fixgeoandmat = bpy.data.texts["Exporttogltfcustom.py"].as_module() 
 
 #for build, disable during debugging
-#import Exporttogltfcustom as fixgeoandmat
+import fixgeoandmat
 
 #for debugging, disable in build
-prepareforbaking = bpy.data.texts["baketextures.py"].as_module() 
+# prepareforbaking = bpy.data.texts["prepareforbakings.py"].as_module() 
 
 #for build, disable during debugging
-#import baketextures as prepareforbaking
+import prepareforbaking
 
 class TOOLS_OT_FixGeoAndMatOperator(bpy.types.Operator):
     '''Makes a copy of the object and changes the geo nodes and mats of copy to keep looks identical\
@@ -82,25 +82,3 @@ CLASSES = [
     TOOLS_OT_FixGeoAndMatOperator,TOOLS_PT_GeoNodesExport,TOOLS_OT_PrepareForBakingOperator,
      TOOLS_PT_PrepareForBaking
 ]
-
-def register():
-    print('registered') # just for debug
-    
-    for (prop_name, prop_value) in PROPS:
-        setattr(bpy.types.Scene, prop_name, prop_value)
-        
-    for klass in CLASSES:
-        bpy.utils.register_class(klass)
-
-def unregister():
-    print('unregistered') # just for debug
-    
-    for (prop_name, _) in PROPS:
-        delattr(bpy.types.Scene, prop_name)
-        
-    for klass in reversed(CLASSES):
-        bpy.utils.unregister_class(klass)
-
-
-if __name__ == '__main__':
-    register()

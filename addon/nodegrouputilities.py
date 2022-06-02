@@ -76,7 +76,7 @@ def addnodebetweenconnected(node_group,left_node,node_to_add,right_node):
                     
     #found a connection
     if lowest_index < len(left_node.outputs):
-        print("found a connection")
+        # print("found a connection")
         connection_type = link.from_socket.type
         new_node_input_index = -1
         new_node_output_index = -1
@@ -130,7 +130,7 @@ def addnodebetweenconnected(node_group,left_node,node_to_add,right_node):
     
     #no connection found  
     else:
-        print("no connections found")
+        # print("no connections found")
         return False
     
 
