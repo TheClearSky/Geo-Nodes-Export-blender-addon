@@ -1,2 +1,0 @@
-def nodetree():
-    print("lol")

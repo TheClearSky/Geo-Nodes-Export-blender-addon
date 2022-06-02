@@ -3,10 +3,10 @@ import bpy
 import os
 
 #for debugging, disable in build
-nodeutils = bpy.data.texts["nodegrouputilities.py"].as_module() 
+# nodeutils = bpy.data.texts["nodegrouputilities.py"].as_module() 
 
 #for build, disable during debugging
-#import nodegrouputilities as nodeutils
+import nodegrouputilities as nodeutils
 def requirednodecheck():
     #if already not imported
     try:
@@ -17,9 +17,9 @@ def requirednodecheck():
         print("Not found:Importing it")
         
         # blend file name
-    #    file_path =  os.path.abspath("needednodes.blend")   #for final build
-        file_path = "D:\\blender and game assets\\blender files\\2022 made files"\
-        +"\\addon\\needednodes.blend" #for debug build
+        file_path =  os.path.abspath("needednodes.blend")   #for final build
+        # file_path = "D:\\blender and game assets\\blender files\\2022 made files"\
+        # +"\\addon\\needednodes.blend" #for debug build
         inner_path = "NodeTree"   # type 
         object_name = "Realise instances custom" # name
 
@@ -294,7 +294,7 @@ def main():
             copied_modifier.node_group = new_node_tree
             
             #fix the modifier
-            fixgeometrynodes(copied_modifier) #for debugging, change to copied_modifier in final build
+            fixgeometrynodes(copied_modifier) 
             fixmaterials(copied_obj,copied_modifier)
             break
 #        else:
