@@ -1,12 +1,12 @@
 import inspect
 import bpy
 import os
-
+import addon_utils
 #for debugging, disable in build
 # nodeutils = bpy.data.texts["nodegrouputilities.py"].as_module() 
 
 #for build, disable during debugging
-import nodegrouputilities as nodeutils
+from . import nodeutils 
 def requirednodecheck():
     #if already not imported
     try:
@@ -17,7 +17,22 @@ def requirednodecheck():
         print("Not found:Importing it")
         
         # blend file name
-        file_path =  os.path.abspath("needednodes.blend")   #for final build
+        file = "needednodes.blend"
+
+        
+        #path to init file of this addon (installation folder)
+        addon_path = ""
+        for mod in addon_utils.modules():
+            name = mod.bl_info.get("name")
+            if name == "Geo Nodes Export":
+                addon_path = mod.__file__
+
+        dirname = os.path.dirname(addon_path)
+
+        #get the folder name(not path) of current file
+        # folder_name = os.path.basename(os.getcwd())
+
+        file_path =  os.path.join(dirname,file)   #for final build
         # file_path = "D:\\blender and game assets\\blender files\\2022 made files"\
         # +"\\addon\\needednodes.blend" #for debug build
         inner_path = "NodeTree"   # type 
@@ -103,15 +118,17 @@ def fixgeometrynodes(geometrynodesmodifier):
     #array(list) of pairs(tuple) of left and right nodes to add nodes between
     nodes_to_add_between = []
     
+    #queue of BFS
     while queue:
         
         queue_front = queue.pop(0)
         
+        #if encountered a join geometry node
         if queue_front.bl_idname == "GeometryNodeJoinGeometry":
             
             visited_first_join_geometry = True
 
-            #adding all the branches to adding realise instances custom node
+            #adding realise instances custom node to all the branches preceding
             for link in nodedict[queue_front]["links"]:
                 nodes_to_add_between.append((link.from_node,queue_front))
             
@@ -135,24 +152,32 @@ def fixgeometrynodes(geometrynodesmodifier):
             
             
             
-            
+        #if not visited an instance on points or join geometry, 
+        # and first encounter between them is an instance on points
         if (not (visited_first_join_geometry or visited_first_instance_on_points))\
         and (queue_front.bl_idname == "GeometryNodeInstanceOnPoints"):
             
             visited_first_instance_on_points = True
             
+            #add a normal realise instances(the one which blender provides) just before output node
             node_to_add = nodes.nodes.new("GeometryNodeRealizeInstances")
             #tracing path
             current_node = queue_front
             prev_node = None
+
+            #trace until output node
             while current_node!=output_node:
                 prev_node = current_node
                 current_node = path[current_node]
                 
+            #when output node found, add this node just before
             nodeutils.addnodebetweenconnected(nodes,prev_node,node_to_add,current_node)
                 
-#        print("Queue front\t\t",queue_front)
-        
+        #BFS algorithm, for every link in queue front node's links, add all the nodes linking to
+        #to the end of the queue. Also if it's a terminnal node, it won't be in the nodedict
+        # since nodedict was built by looking back from nodes and terminal nodes have no node to look 
+        # back to. This causes KeyError and that is handled by adding these nodes with and empty 
+        # links list to the nodedict
         for link in nodedict[queue_front]["links"]:
             try:
                 if not nodedict[link.from_node]["visited"]:
@@ -169,12 +194,15 @@ def fixgeometrynodes(geometrynodesmodifier):
     realise_nodes_to_add = []
     for pair in nodes_to_add_between:
         
+        #create the custom node
         node_to_add = nodes.nodes.new("GeometryNodeGroup")
         node_to_add.node_tree = bpy.data.node_groups["Realise instances custom"]
-#        printattr2(node_to_add)
+
+        #connect it
         nodeutils.addnodebetweenconnected(nodes,pair[0],node_to_add,pair[1])
         realise_nodes_to_add.append(node_to_add)
     
+    #add the vector output of all the nodes by putting them in a queue and iteratively popping 2 of them # and pushing the result to the queue. The addition is performed using Vector math node on add mode
     noofrealisenodes = len(realise_nodes_to_add)
     node1index = 0
     node2index = 0
@@ -195,22 +223,29 @@ def fixgeometrynodes(geometrynodesmodifier):
         realise_nodes_to_add.pop(0)
         realise_nodes_to_add.pop(0)
         realise_nodes_to_add.append(new_node)
-        
+
+    #if number of realise nodes wasn't 0 to begin with 
     if realise_nodes_to_add:
         
         #make a new output vector attribute to store the new co-ordinates
         texturefix = nodes.outputs.new("NodeSocketVector","texturefix") 
         
+        #find the newly created texturefix node in node tree
         for index,socket in enumerate(output_node.inputs):
             if socket.identifier == texturefix.identifier:
                 texturefix = socket
                 break
         
+        #if there was only one vector output, the end result would be that output itself, so no
+        # vector math nodes needed
         if realise_nodes_to_add[0].bl_idname == "GeometryNodeGroup":
             nodes.links.new(texturefix,realise_nodes_to_add[0].outputs[1])
         else:
             nodes.links.new(texturefix,realise_nodes_to_add[0].outputs[0])
         
+        #at the end, create a subtract node and subtract (0.5*(noofrealisenodes-1))
+        #from x,y,z of addition of all inputs (because average value is 0.5 which is added
+        # (noofrealisenodes-1) times extra)
         subtract_node = nodes.nodes.new("ShaderNodeVectorMath")
         subtract_node.operation="SUBTRACT"
         nodeutils.addnodebetweenconnected(nodes,realise_nodes_to_add[0],subtract_node,output_node)
@@ -223,11 +258,14 @@ def fixgeometrynodes(geometrynodesmodifier):
         vector_node.location=nodeutils.calculateabsolutelocation(subtract_node)
         vector_node.location.x-=500
         vector_node.location.y-=200
+
+        #rename the attribute value texturefix for use in shader
         texturefix_identifier_index = int(texturefix.identifier[7:])
         geometrynodesmodifier[f"Output_{texturefix_identifier_index}_attribute_name"]= "texturefix"
 
 def fixmaterial(material):
     
+    #replace all the connections from generated of texture coordinates with newly created atttribute
     nodes = material.node_tree
     for node in nodes.nodes:
         if node.bl_idname=="ShaderNodeTexCoord":

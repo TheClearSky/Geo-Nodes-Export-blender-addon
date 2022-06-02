@@ -1,4 +1,10 @@
-from panel_ui import *
+import bpy
+from . import panel_ui
+from . import nodeutils
+from . import fixgeoandmat
+from . import prepareforbaking
+#import bpy and every other addon file
+
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -12,6 +18,7 @@ from panel_ui import *
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+#data about this addon
 bl_info = {
     "name" : "Geo Nodes Export",
     "author" : "Deepak Prasad",
@@ -20,24 +27,25 @@ bl_info = {
     "version" : (1, 0, 0),
     "location" : "3D View > N-Panel > Geo Nodes Export",
     "warning" : "",
-    "category" : "Geometry Nodes"
+    "category" : "Import Export"
 }
 
+#register and unregister all classes and pros(they are imported from panel_ui.py)
 def register():
-    print('registered') # just for debug
+    print(f'Enabled {bl_info["name"]}')
     
-    for (prop_name, prop_value) in PROPS:
+    for (prop_name, prop_value) in panel_ui.PROPS:
         setattr(bpy.types.Scene, prop_name, prop_value)
         
-    for klass in CLASSES:
+    for klass in panel_ui.CLASSES:
         bpy.utils.register_class(klass)
 
 def unregister():
-    print('unregistered') # just for debug
+    print(f'Disabled {bl_info["name"]}') 
     
-    for (prop_name, _) in PROPS:
+    for (prop_name, _) in panel_ui.PROPS:
         delattr(bpy.types.Scene, prop_name)
         
-    for klass in reversed(CLASSES):
+    for klass in reversed(panel_ui.CLASSES):
         bpy.utils.unregister_class(klass)
 

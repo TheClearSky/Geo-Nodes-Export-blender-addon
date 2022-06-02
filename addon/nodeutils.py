@@ -31,13 +31,16 @@ def sum2vectornodesockets(node_group,node1,node2,node1_output_index,node2_output
     
     if node2.outputs[node2_output_index].bl_idname != "NodeSocketVector":
         raise TypeError("nodesocket of node2 isn't of type vector")
-        
+    
+    #create a new Vector Math in ADD mode
     node_to_add = node_group.nodes.new("ShaderNodeVectorMath")
-#    print(node_to_add.operation)
     node_to_add.operation="ADD"
+
+    #connect the correspomding sockets
     connectnodes(node_group,node1,node_to_add,node1_output_index,0)
     connectnodes(node_group,node2,node_to_add,node2_output_index,1)
     
+    #change the location to a twice ahead(x) of the centre of 2 nodes 
     node_to_add.location = midpointofnodes(node1,node2)
     node_to_add.location.x += abs(node1.location.x-node2.location.x)
     return node_to_add
